@@ -1,0 +1,3 @@
+https://fred.stlouisfed.org/series/DGS3MO
+https://fred.stlouisfed.org/series/DGS20
+https://fred.stlouisfed.org/series/DGS10
