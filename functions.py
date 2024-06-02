@@ -291,35 +291,38 @@ def visualize_shifts_together_double_y_axis(df, date_column, series_1, series_2,
     plt.tight_layout()
     plt.show()
 
-def get_p_value_for_shifts(df, variable, tenors = [], min_lag = -30, max_lag = 31):
 
-    p_values = [[] for i in range(len(tenors))]
+def get_p_value_for_shifts(df, variable, tenors=[], min_lag=-30, max_lag=31):
+    p_values = [[] for _ in range(len(tenors))]
 
-    # Először a shiftelt oszlopok létrehozása, az összes shifttel
-    for shift in list(range(min_lag, max_lag)):
+    # Ensure we are working on a copy
+    df = df.copy()
 
-        df[f"{variable}_shift_{shift}"] = df[variable].shift(shift)
+    # Create shifted columns
+    for shift in range(min_lag, max_lag):
+        df.loc[:, f"{variable}_shift_{shift}"] = df[variable].shift(shift)
 
-        #Most modellezés minden shiftre
-        X=df.dropna().copy()
-        Y=X[tenors]
-        X=X[f"{variable}_shift_{shift}"]
+    # Model for each shift
+    for shift in range(min_lag, max_lag):
+        X = df.dropna().copy()
+        Y = X[tenors]
+        X = X[f"{variable}_shift_{shift}"]
 
-        # Transform the data with the 1/x connection we have noticed
+        # Transform the data with the 1/x connection
         for column in Y.columns:
-            Y[f"{column}_1perX"] = 1/(1 + Y[column])
+            Y[f"{column}_1perX"] = 1 / (1 + Y[column])
 
-        #We need to add a constant value   
+        # Add a constant
         X = sm.add_constant(X)
 
-        #Let us finally run the OLS
+        # Run the OLS
         results = {}
-        for i in range(Y.shape[1]):  # Iterate over each column in Y.
-            model = sm.OLS(Y.iloc[:, i], X.astype(float)).fit()  # Fit model for Y's ith column.
-            results[Y.columns[i]] = model  # Store the summary with the column name as key.
+        for i in range(Y.shape[1]):
+            model = sm.OLS(Y.iloc[:, i], X.astype(float)).fit()
+            results[Y.columns[i]] = model  # Store the summary with the column name as key
 
         for i in range(len(tenors)):
-            all_variable_p_values = results[f'{tenors[i]}_1perX'].pvalues
+            all_variable_p_values = results[f"{tenors[i]}_1perX"].pvalues
             p_values[i].append(all_variable_p_values[f"{variable}_shift_{shift}"])
 
     return p_values
